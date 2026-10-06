@@ -17,8 +17,9 @@ def home():
 def clothing(filename):
     return send_from_directory("Clothing", filename)
 
-@app.route("/generate")
-def generate():
+@app.route("/api/outfits/generate", methods=["POST"])
+def generate_outfit():
+    print("Request received for PIO")
     images = [
     PIL.Image.open("Clothing/Tee_1.jpg"),
     PIL.Image.open("Clothing/Tee_2.jpg"),
@@ -46,14 +47,18 @@ def generate():
     for i, filename in enumerate(filenames):
         image_list += f"Image {i+1}: {filename}\n"
 
+    print("Calling Gemini...")
+
     response = client.models.generate_content(
-        model="gemini-2.5-flash-lite",
+        model="gemini-3.1-flash-lite",
         contents=images + [f"""Here are the images:\n{image_list}
         Pick an outfit and refer to each item by its exact filename.
         At the end of your response, add a line that says exactly:
         CHOSEN: filename1.jpg, filename2.jpg, filename3.jpg
         Only include the filenames you actually picked."""]
         )
+    
+    print("Gemini response received.")
 
     text = response.text
     chosen_line = [line for line in text.split("\n") if line.startswith("CHOSEN:")][0]
@@ -61,7 +66,7 @@ def generate():
     clean_description = text.replace(chosen_line, "").strip()
 
     return jsonify({
-        "outfit_description": text,
+        "outfit_description": clean_description,
         "images": chosen_files
     })
 
